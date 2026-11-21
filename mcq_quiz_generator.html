@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCQ Quiz Generator</title>
+<style>
+  :root {
+    --bg1: #4f46e5; --bg2: #7c3aed; --bg3: #db2777;
+    --card: #ffffff; --text: #1f2937; --muted: #6b7280; --border: #e5e7eb;
+    --primary: #6d4aed; --soft: #f5f3ff; --ok: #22c55e; --okbg: #dcfce7; --bad: #ef4444; --badbg: #fee2e2;
+  }
+  body.dark {
+    --card: #1f2937; --text: #f3f4f6; --muted: #9ca3af; --border: #374151;
+    --soft: #2b2f4a; --okbg: #14532d; --badbg: #7f1d1d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif; margin: 0; min-height: 100vh; color: var(--text);
+    background: linear-gradient(135deg, var(--bg1), var(--bg2) 60%, var(--bg3)); padding: 30px 15px;
+  }
+  .container { max-width: 760px; margin: 0 auto; }
+  header { text-align: center; color: #fff; margin-bottom: 22px; position: relative; }
+  header h1 { margin: 0; font-size: 34px; }
+  header p { margin: 6px 0 0; opacity: .9; }
+  #darkBtn { position: absolute; right: 0; top: 0; background: rgba(255,255,255,.2); padding: 8px 12px; }
+
+  .card { background: var(--card); padding: 24px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+  .hidden { display: none !important; }
+  label.title { font-weight: 600; font-size: 14px; display: block; margin-bottom: 6px; }
+  textarea, input, select {
+    width: 100%; padding: 11px; margin-bottom: 14px; font-size: 15px; font-family: inherit;
+    border: 2px solid var(--border); border-radius: 10px; outline: none; background: var(--card); color: var(--text);
+  }
+  textarea:focus, input:focus, select:focus { border-color: var(--primary); }
+  textarea { height: 140px; resize: vertical; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 150px; }
+
+  button {
+    border: 0; padding: 11px 20px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    cursor: pointer; color: #fff; transition: transform .1s, opacity .2s;
+  }
+  button:hover:not(:disabled) { transform: translateY(-2px); opacity: .92; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .primary { background: linear-gradient(90deg, #4f46e5, #7c3aed); }
+  .secondary { background: var(--border); color: var(--text); }
+  .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  #msg { margin: 12px 0 0; font-size: 14px; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab { background: var(--border); color: var(--text); flex: 1; }
+  .tab.active { background: var(--primary); color: #fff; }
+  .small { font-size: 13px; color: var(--muted); }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: -6px 0 14px; }
+  .check input { width: auto; margin: 0; }
+
+  /* quiz top bar */
+  .topbar { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 10px; }
+  #timer { background: var(--soft); padding: 5px 12px; border-radius: 20px; }
+  .bar { height: 10px; background: var(--border); border-radius: 10px; overflow: hidden; margin: 8px 0 16px; }
+  .bar div { height: 100%; width: 0; background: linear-gradient(90deg, #4f46e5, #db2777); transition: width .4s; }
+  .dots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .dot { width: 30px; height: 30px; padding: 0; border-radius: 50%; font-size: 13px; background: var(--border); color: var(--text); }
+  .dot.answered { background: var(--primary); color: #fff; }
+  .dot.current { outline: 3px solid #db2777; }
+
+  .qtext { font-weight: 600; font-size: 18px; margin-bottom: 14px; line-height: 1.4; }
+  .opt {
+    display: block; padding: 11px 14px; margin-bottom: 9px; cursor: pointer;
+    border: 2px solid var(--border); border-radius: 10px; transition: all .15s;
+  }
+  .opt:hover { border-color: #a78bfa; background: var(--soft); }
+  .opt.selected { border-color: var(--primary); background: var(--soft); }
+  .opt input { width: auto; margin: 0 10px 0 0; accent-color: #7c3aed; }
+  .opt.right { background: var(--okbg); border-color: var(--ok); }
+  .opt.bad { background: var(--badbg); border-color: var(--bad); }
+  .nav { display: flex; justify-content: space-between; margin-top: 18px; gap: 10px; }
+
+  /* result */
+  .center { text-align: center; }
+  .big { font-size: 52px; font-weight: 700; color: var(--primary); }
+  .stats { display: flex; justify-content: center; gap: 25px; margin: 10px 0 18px; flex-wrap: wrap; }
+  .stats div { background: var(--soft); padding: 8px 16px; border-radius: 10px; font-size: 14px; }
+  .review { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 18px; }
+  .explain { background: var(--soft); padding: 8px 12px; border-radius: 8px; font-size: 14px; margin-top: 6px; }
+  #history { font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>📝 MCQ Quiz Generator</h1>
+    <p>Paste a chapter, pick the number of questions, get an instant quiz</p>
+    <button id="darkBtn" onclick="toggleDark()">🌙</button>
+  </header>
+
+  <!-- ================= SETUP SCREEN ================= -->
+  <div class="card" id="setup">
+    <label class="title">Chapter / topic text</label>
+    <textarea id="text" placeholder="Paste your text here..."></textarea>
+
+    <div class="row">
+      <div>
+        <label class="title">Number of questions</label>
+        <input id="num" type="number" value="5" min="1" max="20">
+      </div>
+      <div>
+        <label class="title">Difficulty</label>
+        <select id="level">
+          <option>Easy</option><option selected>Medium</option><option>Hard</option>
+        </select>
+      </div>
+      <div>
+        <label class="title">Time limit (minutes, 0 = none)</label>
+        <input id="limit" type="number" value="0" min="0" max="120">
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tabOllama" onclick="setMode('ollama')">🦙 Ollama (local)</button>
+      <button class="tab" id="tabAI" onclick="setMode('ai')">🤖 Claude API</button>
+      <button class="tab" id="tabManual" onclick="setMode('manual')">📋 Paste JSON</button>
+    </div>
+
+    <!-- Mode 0: Ollama (local, free, no key) -->
+    <div id="ollamaMode">
+      <div class="row">
+        <div>
+          <label class="title">Ollama URL</label>
+          <input id="ollamaUrl" value="http://localhost:11434">
+        </div>
+        <div>
+          <label class="title">Model</label>
+          <select id="ollamaModel"><option value="">Loading models...</option></select>
+        </div>
+      </div>
+      <div class="buttons">
+        <button class="primary" id="ollamaBtn" onclick="generateOllama()">✨ Generate Quiz</button>
+        <button class="secondary" onclick="loadModels()">🔄 Load my models</button>
+        <button class="secondary" onclick="loadSample()">Try Sample</button>
+      </div>
+      <p class="small">Needs Ollama running. If the browser blocks the request (CORS), start Ollama with <code>OLLAMA_ORIGINS=*</code> set.</p>
+    </div>
+
+    <!-- Mode 1: API -->
+    <div id="aiMode" class="hidden">
+      <label class="title">Claude API key</label>
+      <input id="key" type="password" placeholder="sk-ant-...">
+      <label class="check"><input type="checkbox" id="remember"> Remember key on this browser</label>
+      <div class="buttons">
+        <button class="primary" id="genBtn" onclick="generate()">✨ Generate Quiz</button>
+        <button class="secondary" onclick="loadSample()">Try Sample</button>
+      </div>
+    </div>
+
+    <!-- Mode 2: Manual -->
+    <div id="manualMode" class="hidden">
+      <p class="small">No API key? Copy the prompt, paste it into any AI chatbot (Claude, ChatGPT...), then paste the JSON it gives you below.</p>
+      <button class="secondary" onclick="copyPrompt()">📄 Copy Prompt</button>
+      <label class="title" style="margin-top:14px">Paste JSON reply here</label>
+      <textarea id="jsonIn" placeholder='[{"question": "...", "options": ["A","B","C","D"], "answer": "A"}]'></textarea>
+      <button class="primary" onclick="loadFromJSON()">Start Quiz</button>
+    </div>
+
+    <p id="msg"></p>
+    <div id="history"></div>
+  </div>
+
+  <!-- ================= QUIZ SCREEN ================= -->
+  <div class="card hidden" id="quizCard">
+    <div class="topbar">
+      <span id="counter"></span>
+      <span id="timer">⏱ 00:00</span>
+    </div>
+    <div class="bar"><div id="progress"></div></div>
+    <div class="dots" id="dots"></div>
+
+    <div class="qtext" id="qtext"></div>
+    <div id="options"></div>
+
+    <div class="nav">
+      <button class="secondary" id="prevBtn" onclick="go(-1)">← Previous</button>
+      <button class="primary" id="nextBtn" onclick="go(1)">Next →</button>
+      <button class="primary hidden" id="submitBtn" onclick="finish()">Submit ✓</button>
+    </div>
+  </div>
+
+  <!-- ================= RESULT SCREEN ================= -->
+  <div class="card hidden" id="resultCard">
+    <div class="center">
+      <div class="big" id="scoreNum"></div>
+      <div class="bar"><div id="scoreBar"></div></div>
+      <h3 id="scoreText"></h3>
+      <div class="stats" id="stats"></div>
+      <div class="buttons" style="justify-content:center">
+        <button class="primary" onclick="retry()">🔁 Retry</button>
+        <button class="secondary" onclick="newQuiz()">➕ New Quiz</button>
+        <button class="secondary" onclick="downloadJSON()">⬇ Download JSON</button>
+        <button class="secondary" onclick="window.print()">🖨 Print</button>
+      </div>
+    </div>
+    <div class="review" id="review"></div>
+  </div>
+
+</div>
+
+<script>
+// ---------------- STATE ----------------
+let questions = [];      // [{question, options, answer, explanation}]
+let userAnswers = [];    // chosen option text (or null) for each question
+let current = 0;
+let startTime = 0, timerId = null, timeLimit = 0, timeUsed = 0;
+let mode = "ollama";
+
+const $ = id => document.getElementById(id);
+// Escape text so AI output can never inject HTML
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+// ---------------- SETTINGS / UI ----------------
+function toggleDark() { document.body.classList.toggle("dark"); localStorage.setItem("mcqDark", document.body.classList.contains("dark") ? "1" : ""); }
+function setMode(m) {
+  mode = m;
+  $("ollamaMode").classList.toggle("hidden", m !== "ollama");
+  $("aiMode").classList.toggle("hidden", m !== "ai");
+  $("manualMode").classList.toggle("hidden", m !== "manual");
+  $("tabOllama").classList.toggle("active", m === "ollama");
+  $("tabAI").classList.toggle("active", m === "ai");
+  $("tabManual").classList.toggle("active", m === "manual");
+  showMsg("");
+}
+function showMsg(t, color) { $("msg").style.color = color || "var(--muted)"; $("msg").textContent = t; }
+function show(screen) {
+  ["setup", "quizCard", "resultCard"].forEach(id => $(id).classList.toggle("hidden", id !== screen));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ---------------- PROMPT + AI ----------------
+function buildPrompt(wrapped) {
+  const n = $("num").value, level = $("level").value;
+  return "Create " + n + " " + level + " level multiple choice questions from the text below.\n" +
+    (wrapped ? 'Return ONLY a JSON object like {"questions": [ ... ]}. Each item in the list must look like:\n'
+             : "Return ONLY a JSON array, no extra words. Each item must look like:\n") +
+    '{"question": "...", "options": ["opt1", "opt2", "opt3", "opt4"], "answer": "exact text of the correct option", "explanation": "one short line why"}\n' +
+    "Rules: exactly 4 options, only one correct, all 4 options different, wrong options must be believable.\n\nTEXT:\n" + $("text").value.trim();
+}
+
+async function generate() {
+  const key = $("key").value.trim();
+  if (!$("text").value.trim() || !key) return showMsg("Please enter text and API key.", "#ef4444");
+  if ($("remember").checked) localStorage.setItem("mcqKey", key); else localStorage.removeItem("mcqKey");
+
+  $("genBtn").disabled = true;
+  showMsg("⏳ Generating questions... please wait");
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model: "claude-sonnet-5-5", max_tokens: 4000, messages: [{ role: "user", content: buildPrompt() }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    startQuiz(parseQuestions(data.content[0].text));
+  } catch (e) {
+    showMsg("Error: " + e.message, "#ef4444");
+  }
+  $("genBtn").disabled = false;
+}
+
+// ---------------- OLLAMA (local LLM) ----------------
+// Fill the model dropdown with the models installed in Ollama
+async function loadModels() {
+  const url = $("ollamaUrl").value.trim().replace(/\/$/, "");
+  showMsg("Looking for Ollama models...");
+  try {
+    const res = await fetch(url + "/api/tags");
+    const data = await res.json();
+    // skip embedding models (e.g. nomic-embed-text), they cannot write quizzes
+    const names = (data.models || []).map(m => m.name).filter(n => !/embed/i.test(n));
+    if (!names.length) throw new Error("No chat models installed. Run: ollama pull qwen2.5:3b");
+    $("ollamaModel").innerHTML = names.map(n => "<option>" + esc(n) + "</option>").join("");
+    $("ollamaModel").value = names.find(n => n.startsWith("qwen2.5")) || names[0];   // prefer qwen
+    showMsg("✅ Found " + names.length + " model(s).", "#16a34a");
+    return true;
+  } catch (e) {
+    showMsg(ollamaHelp(e), "#ef4444");
+    return false;
+  }
+}
+
+function ollamaHelp(e) {
+  return "Could not reach Ollama (" + e.message + "). Check that Ollama is running and start it with OLLAMA_ORIGINS=* so the browser is allowed to connect.";
+}
+
+async function generateOllama() {
+  if (!$("text").value.trim()) return showMsg("Please paste some text first.", "#ef4444");
+  const url = $("ollamaUrl").value.trim().replace(/\/$/, "");
+  if (!$("ollamaModel").value && !(await loadModels())) return;   // make sure a real model is selected
+  $("ollamaBtn").disabled = true;
+  showMsg("⏳ " + $("ollamaModel").value + " is writing your quiz... local models can take a minute");
+  // Small models sometimes return bad JSON, so try up to 3 times automatically
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      if (attempt > 1) showMsg("🔁 Attempt " + attempt + " of 3 (previous reply was not valid)...");
+      const res = await fetch(url + "/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: $("ollamaModel").value,
+          stream: false,
+          format: "json",                       // forces valid JSON output
+          options: { temperature: 0.4 },
+          messages: [{ role: "user", content: buildPrompt(true) }]
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      startQuiz(parseQuestions(data.message.content));
+      showMsg("");
+      lastError = null;
+      break;
+    } catch (e) {
+      if (e instanceof TypeError) { lastError = e; break; }   // Ollama not reachable, no point retrying
+      lastError = e;
+    }
+  }
+  if (lastError) showMsg(lastError instanceof TypeError ? ollamaHelp(lastError) : "Error: " + lastError.message + " (please try again)", "#ef4444");
+  $("ollamaBtn").disabled = false;
+}
+
+function copyPrompt() {
+  if (!$("text").value.trim()) return showMsg("Paste your chapter text first.", "#ef4444");
+  navigator.clipboard.writeText(buildPrompt()).then(() => showMsg("✅ Prompt copied! Paste it into an AI chatbot.", "#16a34a"));
+}
+
+function loadFromJSON() {
+  try { startQuiz(parseQuestions($("jsonIn").value)); }
+  catch (e) { showMsg("Error: " + e.message, "#ef4444"); }
+}
+
+// Clean + validate the JSON from the AI
+function parseQuestions(raw) {
+  const s = raw.indexOf("["), e = raw.lastIndexOf("]");
+  if (s < 0 || e < 0) throw new Error("No JSON array found in the reply.");
+  const arr = JSON.parse(raw.slice(s, e + 1));
+  if (!Array.isArray(arr) || !arr.length) throw new Error("JSON has no questions.");
+
+  return arr.map((q, i) => {
+    if (!q.question || !Array.isArray(q.options) || q.options.length < 2) throw new Error("Question " + (i + 1) + " is not in the right format.");
+    const clean = q.options.map(o => String(o).trim().toLowerCase());
+    if (new Set(clean).size !== clean.length) throw new Error("Question " + (i + 1) + " has duplicate options.");
+    let ans = q.answer;
+    // allow answers like "B" or 1 (index) instead of full text
+    if (!q.options.includes(ans)) {
+      if (/^[A-D]$/i.test(ans)) ans = q.options["ABCD".indexOf(ans.toUpperCase())];
+      else if (Number.isInteger(ans)) ans = q.options[ans];
+    }
+    if (!q.options.includes(ans)) throw new Error("Question " + (i + 1) + ": answer doesn't match any option.");
+    return { question: q.question, options: shuffle(q.options), answer: ans, explanation: q.explanation || "" };
+  });
+}
+
+function loadSample() {
+  startQuiz(parseQuestions(JSON.stringify([
+    { question: "What is the capital of India?", options: ["Mumbai", "New Delhi", "Kolkata", "Chennai"], answer: "New Delhi", explanation: "New Delhi is the seat of the Government of India." },
+    { question: "Which gas do plants absorb for photosynthesis?", options: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"], answer: "Carbon dioxide", explanation: "Plants take in CO2 and release oxygen." },
+    { question: "HTML stands for?", options: ["Hyper Text Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyperlinks Text Mark Language"], answer: "Hyper Text Markup Language", explanation: "HTML is the standard markup language for web pages." },
+    { question: "Which is the largest planet in our solar system?", options: ["Earth", "Saturn", "Jupiter", "Mars"], answer: "Jupiter", explanation: "Jupiter is more than twice as massive as all other planets combined." }
+  ])));
+}
+
+// ---------------- QUIZ FLOW ----------------
+function startQuiz(qs) {
+  questions = qs;
+  userAnswers = new Array(qs.length).fill(null);
+  current = 0;
+  timeLimit = (parseInt($("limit").value) || 0) * 60;
+  startTime = Date.now();
+  clearInterval(timerId);
+  timerId = setInterval(tick, 1000);
+  tick();
+  show("quizCard");
+  renderQuestion();
+}
+
+function tick() {
+  const used = Math.floor((Date.now() - startTime) / 1000);
+  const shown = timeLimit ? Math.max(timeLimit - used, 0) : used;
+  $("timer").textContent = (timeLimit ? "⏳ " : "⏱ ") + String(Math.floor(shown / 60)).padStart(2, "0") + ":" + String(shown % 60).padStart(2, "0");
+  if (timeLimit && used >= timeLimit) finish();   // auto-submit when time is up
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  $("counter").textContent = "Question " + (current + 1) + " of " + questions.length;
+  $("qtext").textContent = q.question;
+  $("options").innerHTML = q.options.map((o, i) =>
+    '<label class="opt' + (userAnswers[current] === o ? " selected" : "") + '">' +
+    '<input type="radio" name="opt" ' + (userAnswers[current] === o ? "checked" : "") + ' onchange="choose(' + i + ')">' + esc(o) + "</label>").join("");
+
+  $("prevBtn").disabled = current === 0;
+  const last = current === questions.length - 1;
+  $("nextBtn").classList.toggle("hidden", last);
+  $("submitBtn").classList.toggle("hidden", !last);
+  updateProgress();
+}
+
+function choose(i) {
+  userAnswers[current] = questions[current].options[i];
+  renderQuestion();
+}
+
+function updateProgress() {
+  const done = userAnswers.filter(a => a !== null).length;
+  $("progress").style.width = (done / questions.length * 100) + "%";
+  $("dots").innerHTML = questions.map((_, i) =>
+    '<button class="dot' + (userAnswers[i] !== null ? " answered" : "") + (i === current ? " current" : "") + '" onclick="jump(' + i + ')">' + (i + 1) + "</button>").join("");
+}
+
+function go(step) { current += step; renderQuestion(); }
+function jump(i) { current = i; renderQuestion(); }
+
+function finish() {
+  const skipped = userAnswers.filter(a => a === null).length;
+  if (skipped && timeLimit && (Date.now() - startTime) / 1000 < timeLimit) {
+    if (!confirm(skipped + " question(s) unanswered. Submit anyway?")) return;
+  }
+  clearInterval(timerId);
+  timeUsed = Math.floor((Date.now() - startTime) / 1000);
+  showResult();
+}
+
+// ---------------- RESULT ----------------
+function showResult() {
+  const score = questions.filter((q, i) => userAnswers[i] === q.answer).length;
+  const total = questions.length;
+  const pct = Math.round(score / total * 100);
+
+  $("scoreNum").textContent = score + " / " + total;
+  $("scoreBar").style.width = "0";
+  setTimeout(() => $("scoreBar").style.width = pct + "%", 50);
+  $("scoreText").textContent = pct >= 80 ? "🎉 Excellent work!" : pct >= 50 ? "👍 Good, keep practicing!" : "📚 Needs more revision.";
+  $("stats").innerHTML =
+    "<div>✅ Correct: " + score + "</div><div>❌ Wrong: " + (total - score - userAnswers.filter(a => a === null).length) + "</div>" +
+    "<div>⏭ Skipped: " + userAnswers.filter(a => a === null).length + "</div><div>📊 " + pct + "%</div>" +
+    "<div>⏱ " + Math.floor(timeUsed / 60) + "m " + (timeUsed % 60) + "s</div>";
+
+  // review every question with colours
+  $("review").innerHTML = "<h3>Review</h3>" + questions.map((q, i) =>
+    '<div style="margin-bottom:22px"><div class="qtext" style="font-size:16px">' + (i + 1) + ". " + esc(q.question) + "</div>" +
+    q.options.map(o => {
+      let cls = "opt";
+      if (o === q.answer) cls += " right";
+      else if (o === userAnswers[i]) cls += " bad";
+      return '<div class="' + cls + '" style="cursor:default">' + esc(o) + (o === userAnswers[i] ? " &nbsp;<small>(your answer)</small>" : "") + "</div>";
+    }).join("") +
+    (userAnswers[i] === null ? '<div class="small">Not answered</div>' : "") +
+    (q.explanation ? '<div class="explain">💡 ' + esc(q.explanation) + "</div>" : "") + "</div>").join("");
+
+  saveHistory(score, total);
+  show("resultCard");
+}
+
+function retry() {
+  questions = questions.map(q => ({ ...q, options: shuffle(q.options) }));
+  startQuiz(questions);
+}
+function newQuiz() { show("setup"); renderHistory(); }
+
+function downloadJSON() {
+  const blob = new Blob([JSON.stringify(questions, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "quiz.json";
+  a.click();
+}
+
+// ---------------- HISTORY (localStorage) ----------------
+function saveHistory(score, total) {
+  const h = JSON.parse(localStorage.getItem("mcqHistory") || "[]");
+  h.unshift({ score, total, date: new Date().toLocaleString() });
+  localStorage.setItem("mcqHistory", JSON.stringify(h.slice(0, 5)));
+}
+function renderHistory() {
+  const h = JSON.parse(localStorage.getItem("mcqHistory") || "[]");
+  $("history").innerHTML = h.length ? "<b>Recent scores:</b> " + h.map(x => x.score + "/" + x.total + " (" + x.date + ")").join(" • ") : "";
+}
+
+// ---------------- INIT ----------------
+if (localStorage.getItem("mcqDark")) document.body.classList.add("dark");
+if (localStorage.getItem("mcqKey")) { $("key").value = localStorage.getItem("mcqKey"); $("remember").checked = true; }
+renderHistory();
+loadModels();   // auto-detect installed Ollama models (e.g. qwen2.5:3b)
+</script>
+</body>
+</html>
